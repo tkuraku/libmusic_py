@@ -441,6 +441,19 @@ class lm_spectral_method:
         return fs_
 
     def decompose(self, y):
+        """
+        Decompose noisy signal space Vy into pure signal space Vx and noise
+        signal space Ve.
+
+        Parameters
+        ----------
+        y
+            input signal
+
+        Returns
+        -------
+            Vy, Vx, Ve, A, Ry
+        """
         if len(y) <= self.M:
             raise ValueError("Err, N must be > M")
         X = spec.corrmtx(y, self.M, "covariance")
