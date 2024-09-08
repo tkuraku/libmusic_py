@@ -42,14 +42,14 @@ order and <b>P</b> is number of real signal sources.
    autocorrelation matrix)
 
 ```python
-Vy,Vx,Ve,A,Ry = method.process(y)
+Vy,Vx,Ve,A,Ry = lm.process(y)
 ```
 
 4. Compute full PSD for frequencies 1 - 4000 Hz (sampling rate is 8 kHz)
 
 ```python
 s = np.linspace(1, 4000, 4000, endpoint=True)
-X2,d2 = method.psd(method, f, 8000)
+X2,d2 = lm.psd(method, f, 8000)
 plt.figure()
 plot(f,X2)
 ```
@@ -62,7 +62,7 @@ TODO add plot from python
    eigenvectors)
 
 ```python
-fs = method.eigenrooting(Fs, 0, 0)
+fs = lm.eigenrooting(Fs, 0, 0)
 ```
 
 
@@ -71,21 +71,21 @@ fs = method.eigenrooting(Fs, 0, 0)
    default
 
 ```python
-peaks, pmu = method.peaks(fs, Fs, peakWidth)
+peaks, pmu = lm.peaks(fs, Fs, peakWidth)
 ```
 
 
 7. In case of 1 or 2 sinusoids, get amplitudes by correlation method
 
 ```python
-A = method.single_tone_amplitude()
-A = method.dual_tone_amplitude(f1, f2, Fs)
+A = lm.single_tone_amplitude()
+A = lm.dual_tone_amplitude(f1, f2, Fs)
 ```
 
 8. In case of any number of sinusoids, get all amplitudes (for each frequency component given in fs)
 
 ```python
-A = method.solve_for_amplitudes(fs, Fs)
+A = lm.solve_for_amplitudes(fs, Fs)
 ```
 
 
