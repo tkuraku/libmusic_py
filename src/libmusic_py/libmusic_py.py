@@ -478,3 +478,261 @@ class lm_spectral_method:
         Vx = Vy[:, : self.P2]
         Ve = Vy[:, self.P2 :]
         return Vy, Vx, Ve, A, Ry
+
+
+class lm_dtmf:
+    """
+    LIBMUSIC
+    Copyright (C) 2022, Piotr Gregor piotr@dataandsignal.com
+
+    lm_dtmf
+
+    DTMF detection.
+
+    date: August 2022
+    Translated to python 2024
+    """
+
+    def __init__(self):
+        self.dtmf_low_freqs = None
+        self.dtmf_high_freqs = None
+
+    def lm_dtmf(self):
+        self.dtmf_low_freqs = np.array([697, 770, 852, 941], dtype=np.float64)
+        self.dtmf_high_freqs = np.array([1209, 1336, 1477, 1633], dtype=np.float64)
+        return self.dtmf_low_freqs, self.dtmf_high_freqs
+
+    def check_by_roots(self, fs, verbose=False):
+        decision = 0
+        f1 = 0
+        f2 = 0
+        N = fs.shape[0]
+        if N < 2:
+            raise ValueError("Did not find roots")
+        else:
+            f1_found = 0
+            f2_found = 0
+
+            # Search low group freq
+            for i in range(N):
+
+                z = fs[i, 1]
+                z_distance = fs[i, 0]
+                z_f = np.abs(fs[i, 2])
+
+                for j in range(4):
+
+                    f = self.dtmf_low_freqs[j]
+
+                    if verbose:
+                        print(
+                            f"LOW {f} Hz:  z = {z}, |z| = {np.abs(z)}, f = {z_f} [Hz]"
+                        )
+                    if abs(f - z_f) < 2:
+                        f1_found = f
+                        if verbose:
+                            print(f"SELECTED z = {z} , |z| = {np.abs(z)}, f = {f} [Hz]")
+                        break
+                if f1_found:
+                    break
+
+            if f1_found:
+                # Search high group freq
+                for i in range(N):
+
+                    z = fs(i, 2)
+                    z_distance = fs(i, 1)
+                    z_f = abs(fs(i, 3))
+
+                    for j in range(4):
+
+                        f = self.dtmf_high_freqs[j]
+
+                        if verbose:
+                            print(
+                                f"HIGH {f} Hz: z = {z}, |z| = {np.abs(z)}, f = {z_f} [Hz]"
+                            )
+                        if np.abs(f - z_f) < 2:
+                            f2_found = f
+                            if verbose:
+                                print(
+                                    f"SELECTED z = {z}, |z| = {np.abs(z)}, f = {f} [Hz]"
+                                )
+                            break
+                    if f2_found:
+                        break
+        if f1_found and f2_found:
+            decision = 1
+            f1 = f1_found
+            f2 = f2_found
+        return decision, f1, f2
+
+    def check_by_peaks(self, peak1, peak2, verbose=False):
+        decision = 0
+        f1 = 0
+        f2 = 0
+
+        f1_found = 0
+        f2_found = 0
+
+        # Search low group freq
+        for j in range(4):
+            f = self.dtmf_low_freqs[j]
+            if abs(f - peak1) <= 2:
+                f1_found = f
+                if verbose:
+                    print(f"SELECTED f1 by peak1 f = {f} [Hz]")
+            if abs(f - peak2) <= 2:
+                f1_found = f
+                if verbose:
+                    print(f"SELECTED f1 by peak2 f = {f} [Hz]")
+
+        if f1_found:
+            # Search high group freq
+            for j in range(4):
+                f = self.dtmf_high_freqs[j]
+                if np.abs(f - peak1) <= 2:
+                    f2_found = f
+                    if verbose:
+                        print(f"SELECTED f2 by peak1 f = {f} [Hz]")
+                    break
+                if np.abs(f - peak2) <= 2:
+                    f2_found = f
+                    if verbose:
+                        print(f"SELECTED f2 by peak2 f = {f} [Hz]")
+                    break
+        if f1_found and f2_found:
+            decision = 1
+            f1 = f1_found
+            f2 = f2_found
+        return decision, f1, f2
+
+    def execute_on_test_vector(
+        self, lm, vector, method, detectBlockLen, byRoots, checkAmplitude, verbose=False
+    ):
+        decision = 0
+        detectSample = 0
+        detectSymbol = 1500
+        sample_n = vector.size
+        sample_end = sample_n - detectBlockLen + 1
+        if sample_end < 1:
+            raise ValueError("Test vector too short")
+        for i in range(sample_end):
+            try:
+                if verbose:
+                    print(f"[%d/%d]->", detectBlockLen, i)
+                    if i == 40:
+                        print(f"o")
+                f1 = 0
+                f2 = 0
+                y = vector[i : i + detectBlockLen]
+                # Energy check
+                ENERGY_THRESHOLD = (
+                    0.5 * (lm.g_dtmf_req_etsi_f2_amp_min_v ^ 2) * detectBlockLen
+                )
+                energy = np.sum(y**2)
+                if energy < ENERGY_THRESHOLD:
+                    continue
+                _ = method.process(vector[i : i + detectBlockLen])
+
+                if byRoots:
+                    fs = method.eigenrooting(lm.g_Fs, 0, 0)
+                    decision, f1, f2 = self.check_by_roots(fs, 0)
+                    if verbose:
+                        print(
+                            f"[%d/%d]By ROOTS, decision=%d, f1=%d, f2=%d",
+                            detectBlockLen,
+                            i,
+                            decision,
+                            f1,
+                            f2,
+                        )
+                else:
+                    peaks, peaks_pmu = method.peaks(np.arange(4000 + 1), lm.g_Fs, 0)
+                    decision, f1, f2 = self.check_by_peaks(peaks[0], peaks[1], verbose)
+                if decision:
+                    if checkAmplitude:
+                        A = method.dual_tone_amplitude(f1, f2, lm.g_Fs)
+                        if A.shape[1] < 2:
+                            continue
+                        if (
+                            A[0] < lm.g_dtmf_req_etsi_f1_amp_min_v
+                            or A[0] > lm.g_dtmf_req_etsi_f1_amp_max_v
+                        ):
+                            continue
+                        if (
+                            A[1] < lm.g_dtmf_req_etsi_f1_amp_min_v
+                            or A[1] > lm.g_dtmf_req_etsi_f1_amp_max_v
+                        ):
+                            continue
+                    if verbose:
+                        print(f"DETECTED")
+                    detectSample = i
+                    detectSymbol = lm.dtmf_etsi_f1_f2_2_symbol(f1, f2)
+                    return
+            except:
+                if verbose:
+                    print(f"Detection failed")
+                continue
+        return decision, detectSample, detectSymbol
+
+    def execute_on_test_vectors(
+        self,
+        lm,
+        vectors,
+        method,
+        detectBlockLen,
+        byRoots,
+        shouldDetect,
+        shouldCheckSymbol,
+        shouldCheckAmplitude,
+        shouldDetectSampleStart,
+        shouldDetectSampleEnd,
+        verbose=False,
+    ):
+        tests_n = vectors.shape[0]
+        score = 0
+        for i in range(tests_n):
+            if verbose:
+                print(f"=== [Exec vector {i}]")
+            try:
+                decision, detectSample, detectSymbol = self.execute_on_test_vector(
+                    lm,
+                    vectors[i, :],
+                    method,
+                    detectBlockLen,
+                    byRoots,
+                    shouldCheckAmplitude,
+                    verbose,
+                )
+                if decision:
+                    if shouldDetect:
+                        # check symbol index
+                        if shouldCheckSymbol:
+                            trueSymbol = lm.dtmf_etsi_idx_2_symbol(i)
+                            if trueSymbol != detectSymbol:
+                                if verbose:
+                                    print(f"Wrong symbol detected")
+                                continue
+                            if verbose:
+                                print(f"Right symbol detected [%c]", trueSymbol)
+
+                        # check sample number is valid
+                        if (detectSample < shouldDetectSampleStart) or (
+                            detectSample > shouldDetectSampleEnd
+                        ):
+                            if verbose:
+                                print(f"False detection")
+                        else:
+                            score = score + 1
+                    else:
+                        continue
+                if not decision:
+                    if not shouldDetect:
+                        score = score + 1
+                    else:
+                        continue
+            except:
+                continue
+        success_rate = score / tests_n
+        return success_rate
