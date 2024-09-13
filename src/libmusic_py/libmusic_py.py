@@ -628,7 +628,7 @@ class lm_dtmf:
                 y = vector[i : i + detectBlockLen]
                 # Energy check
                 ENERGY_THRESHOLD = (
-                    0.5 * (lm.g_dtmf_req_etsi_f2_amp_min_v ^ 2) * detectBlockLen
+                    0.5 * (lm.g_dtmf_req_etsi_f2_amp_min_v**2) * detectBlockLen
                 )
                 energy = np.sum(y**2)
                 if energy < ENERGY_THRESHOLD:
