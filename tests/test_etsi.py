@@ -88,7 +88,7 @@ if True:
         decision = 0
         f1 = 0
         f2 = 0
-        y = o.g_dtmf_etsi[i, np.arange(FRACTION_LEN) + 1]
+        y = o.g_dtmf_etsi[i, :FRACTION_LEN]
         # figure
         # plot(y)
         _ = method.process(y)
