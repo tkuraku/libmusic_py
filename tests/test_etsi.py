@@ -7,6 +7,7 @@
 #
 # date: August 2022
 
+# %%
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -24,6 +25,64 @@ temp = np.arange(4000) + 1
 Fs = 8000
 method = lm_spectral_method("music", M, 4)
 
+roots_f1_validation = [
+    941,
+    697,
+    697,
+    697,
+    770,
+    770,
+    770,
+    852,
+    852,
+    852,
+    697,
+    770,
+    852,
+    941,
+    941,
+    941,
+]
+
+roots_f2_validation = [
+    1336,
+    1209,
+    1336,
+    1477,
+    1209,
+    1336,
+    1477,
+    1209,
+    1336,
+    1477,
+    1633,
+    1633,
+    1633,
+    1633,
+    1209,
+    1477,
+]
+
+c_validation = [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "A",
+    "B",
+    "C",
+    "D",
+    "*",
+    "#",
+]
+
+# %%
 if True:
     for i in range(16):
         decision = 0
@@ -35,6 +94,12 @@ if True:
         _ = method.process(y)
         fs = method.eigenrooting(Fs)
         decision, f1, f2 = d.check_by_roots(fs)
+        if (
+            decision != 1
+            or f1 != roots_f1_validation[i]
+            or f2 != roots_f2_validation[i]
+        ):
+            raise ValueError("Test Failed")
         print(f"By ROOTS i={i}, decision={decision}, f1={f1}, f2={f2}")
 
 if True:
@@ -43,7 +108,7 @@ if True:
         decision = 0
         f1 = 0
         f2 = 0
-        y = o.g_dtmf_etsi[i, np.arange(FRACTION_LEN) + 1]
+        y = o.g_dtmf_etsi[i, :FRACTION_LEN]
         plt.subplot(4, 4, i + 1)
         plt.plot(y)
         c = o.dtmf_etsi_idx_2_symbol(i)
@@ -51,11 +116,20 @@ if True:
         _ = method.process(y)
         peaks, pmu = method.peaks(temp, Fs)
         decision, f1, f2 = d.check_by_peaks(peaks[0], peaks[1])
+
+        if (
+            decision != 1
+            or f1 != roots_f1_validation[i]
+            or f2 != roots_f2_validation[i]
+            or c != c_validation[i]
+        ):
+            raise ValueError("Test Failed")
         print(f"By PEAKS i={i} ({c}), decision={decision}, f1={f1}, f2={f2}")
 
+# %%
 Fs = 8000
 M = 5
-y = o.g_dtmf_etsi[1, :FRACTION_LEN]
+y = o.g_dtmf_etsi[0, :FRACTION_LEN]
 
 plt.figure()
 
@@ -84,3 +158,5 @@ plt.subplot(1, 3, 3)
 plt.plot(X2)
 
 plt.show()
+
+# %%

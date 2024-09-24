@@ -9,6 +9,7 @@ https://github.com/dataandsignal/libmusic_m
 """
 
 from pathlib import Path
+import warnings
 import numpy as np
 import spectrum as spec
 import matplotlib.pyplot as plt
@@ -739,7 +740,7 @@ class lm_globals:
     def __init__(self):
         self.g_Fs = 8000
         step = 1 / self.g_Fs
-        self.g_t = np.arange(0, 1 - 1 / self.g_Fs + step, step=step)
+        self.g_t = np.arange(0, 1, step=step)
         self.g_f1 = 1000
         self.g_f2 = 1209
         self.g_amp = 1
@@ -1280,11 +1281,15 @@ class lm_globals:
             "music3_8000.wav",
             "music4_8000.wav",
         ]
-        self.g_files = np.zeros((4, 8000 * 60))
+        audio_samples = 8000 * 60
+        self.g_files = np.zeros((4, audio_samples))
         for i in range(4):
             df = sound_dir / fd[i]
-            _, signal = wav.read(df)
-            self.g_files[i, :] = signal[: 8000 * 60]
+            with warnings.catch_warnings(action="ignore"):
+                # scipy wav.read doesn't support all wave file chunks and
+                # (metadata etc)
+                _, signal = wav.read(df)
+            self.g_files[i, :] = signal[:audio_samples]
 
         for i in range(16):  # DTMF symbols in g_dtmf_etsi order
             for j in range(50):  # fraction length in samples
@@ -1294,7 +1299,7 @@ class lm_globals:
                 # Valid DTMF
                 s = np.zeros((TEST_VECTOR_LEN))
                 d = self.g_dtmf_etsi[i, :]
-                s[self.DTMF_START : self.DTMF_START + j + 1] = d[0 : j + 1]
+                s[self.DTMF_START - 1 : self.DTMF_START + j] = d[0 : j + 1]
                 self.g_dtmf_v_valid[i, j, :] = s
 
                 # Invalid DTMF
@@ -1303,7 +1308,7 @@ class lm_globals:
                 A1 = 1
                 A2 = 1
                 s = np.zeros((TEST_VECTOR_LEN))
-                s[self.DTMF_START : self.DTMF_START + j + 1] = A1 * np.sin(
+                s[self.DTMF_START - 1 : self.DTMF_START + j] = A1 * np.sin(
                     2 * np.pi * self.g_dtmf_etsi_freqs[i, 0] * t
                 ) + A2 * np.sin(2 * np.pi * self.g_dtmf_etsi_freqs[i, 1] * t)
                 self.g_dtmf_v_invalid_amp[i, j, :] = s
@@ -1312,7 +1317,7 @@ class lm_globals:
                 A1 = self.g_dtmf_req_etsi_f1_amp_min_v * 0.95
                 A2 = self.g_dtmf_req_etsi_f2_amp_max_v * 1.05
                 s = np.zeros((TEST_VECTOR_LEN))
-                s[self.DTMF_START : self.DTMF_START + j + 1] = A1 * np.sin(
+                s[self.DTMF_START - 1 : self.DTMF_START + j] = A1 * np.sin(
                     2 * np.pi * self.g_dtmf_etsi_freqs[i, 0] * t
                 ) + A2 * np.sin(2 * np.pi * self.g_dtmf_etsi_freqs[i, 1] * t)
                 self.g_dtmf_v_invalid_amp_diff[i, j, :] = s
@@ -1321,7 +1326,7 @@ class lm_globals:
                 A1 = self.g_dtmf_etsi_f1_amp_v
                 A2 = self.g_dtmf_etsi_f2_amp_v
                 s = np.zeros((TEST_VECTOR_LEN))
-                s[self.DTMF_START : self.DTMF_START + j + 1] = A1 * np.sin(
+                s[self.DTMF_START - 1 : self.DTMF_START + j] = A1 * np.sin(
                     2
                     * np.pi
                     * ((100 + 2 * self.g_dtmf_req_etsi_freq_error_percent) / 100)
@@ -1340,7 +1345,7 @@ class lm_globals:
                 A1 = self.g_dtmf_req_etsi_f1_amp_min_v * 0.95
                 A2 = self.g_dtmf_req_etsi_f2_amp_max_v * 1.05
                 s = np.zeros((TEST_VECTOR_LEN))
-                s[self.DTMF_START : self.DTMF_START + j + 1] = A1 * np.sin(
+                s[self.DTMF_START - 1 : self.DTMF_START + j] = A1 * np.sin(
                     2
                     * np.pi
                     * ((100 + 2 * self.g_dtmf_req_etsi_freq_error_percent) / 100)
@@ -1368,71 +1373,71 @@ class lm_globals:
 
                 s = np.zeros((TEST_VECTOR_LEN))
                 if i == 0:
-                    s[self.DTMF_START : self.DTMF_START + j + 1] = (
-                        0.001 * noise[self.DTMF_START : self.DTMF_START + j + 1]
+                    s[self.DTMF_START - 1 : self.DTMF_START + j] = (
+                        0.001 * noise[self.DTMF_START - 1 : self.DTMF_START + j]
                     )
                 elif i == 1:
-                    s[self.DTMF_START : self.DTMF_START + j + 1] = (
-                        0.01 * noise[self.DTMF_START : self.DTMF_START + j + 1]
+                    s[self.DTMF_START - 1 : self.DTMF_START + j] = (
+                        0.01 * noise[self.DTMF_START - 1 : self.DTMF_START + j]
                     )
                 elif i == 2:
-                    s[self.DTMF_START : self.DTMF_START + j + 1] = (
-                        0.1 * noise[self.DTMF_START : self.DTMF_START + j + 1]
+                    s[self.DTMF_START - 1 : self.DTMF_START + j] = (
+                        0.1 * noise[self.DTMF_START - 1 : self.DTMF_START + j]
                     )
                 elif i == 3:
-                    s[self.DTMF_START : self.DTMF_START + j + 1] = (
-                        0.5 * noise[self.DTMF_START : self.DTMF_START + j + 1]
+                    s[self.DTMF_START - 1 : self.DTMF_START + j] = (
+                        0.5 * noise[self.DTMF_START - 1 : self.DTMF_START + j]
                     )
                 elif i == 4:
-                    s[self.DTMF_START : self.DTMF_START + j + 1] = (
-                        1.2 * noise[self.DTMF_START : self.DTMF_START + j + 1]
+                    s[self.DTMF_START - 1 : self.DTMF_START + j] = (
+                        1.2 * noise[self.DTMF_START - 1 : self.DTMF_START + j]
                     )
                 elif i == 5:
-                    s[self.DTMF_START : self.DTMF_START + j + 1] = (
-                        0.6 * sine1[self.DTMF_START : self.DTMF_START + j + 1]
+                    s[self.DTMF_START - 1 : self.DTMF_START + j] = (
+                        0.6 * sine1[self.DTMF_START - 1 : self.DTMF_START + j]
                     )
                 elif i == 6:
-                    s[self.DTMF_START : self.DTMF_START + j + 1] = (
-                        0.3 * sine2[self.DTMF_START : self.DTMF_START + j + 1]
+                    s[self.DTMF_START - 1 : self.DTMF_START + j] = (
+                        0.3 * sine2[self.DTMF_START - 1 : self.DTMF_START + j]
                     )
                 elif i == 7:
-                    s[self.DTMF_START : self.DTMF_START + j + 1] = (
-                        0.2 * sine3[self.DTMF_START : self.DTMF_START + j + 1]
+                    s[self.DTMF_START - 1 : self.DTMF_START + j] = (
+                        0.2 * sine3[self.DTMF_START - 1 : self.DTMF_START + j]
                     )
                 elif i == 8:
                     x = self.g_files[0, :]
-                    s[self.DTMF_START : self.DTMF_START + j + 1] = x[
-                        self.DTMF_START : self.DTMF_START + j + 1
+                    s[self.DTMF_START - 1 : self.DTMF_START + j] = x[
+                        self.DTMF_START - 1 : self.DTMF_START + j
                     ]
                 elif i == 9:
                     x = self.g_files[0, :]
-                    temp = np.arange(self.DTMF_START, self.DTMF_START + j + 1) + shift
-                    s[self.DTMF_START : self.DTMF_START + j + 1] = x[temp]
+                    temp = np.arange(self.DTMF_START - 1, self.DTMF_START + j) + shift
+                    s[self.DTMF_START - 1 : self.DTMF_START + j] = x[temp]
                 elif i == 10:
                     x = self.g_files[1, :]
-                    s[self.DTMF_START : self.DTMF_START + j + 1] = x[
-                        self.DTMF_START : self.DTMF_START + j + 1
+                    s[self.DTMF_START - 1 : self.DTMF_START + j] = x[
+                        self.DTMF_START - 1 : self.DTMF_START + j
                     ]
                 elif i == 11:
                     x = self.g_files[1, :]
-                    temp = np.arange(self.DTMF_START, self.DTMF_START + j + 1) + shift
-                    s[self.DTMF_START : self.DTMF_START + j + 1] = x[temp]
+                    temp = np.arange(self.DTMF_START - 1, self.DTMF_START + j) + shift
+                    s[self.DTMF_START - 1 : self.DTMF_START + j] = x[temp]
                 elif i == 12:
                     x = self.g_files[2, :]
-                    temp = np.arange(self.DTMF_START, self.DTMF_START + j + 1)
-                    s[self.DTMF_START : self.DTMF_START + j + 1] = x[temp]
+                    temp = np.arange(self.DTMF_START - 1, self.DTMF_START + j)
+                    s[self.DTMF_START - 1 : self.DTMF_START + j] = x[temp]
                 elif i == 13:
                     x = self.g_files[2, :]
-                    temp = np.arange(self.DTMF_START, self.DTMF_START + j + 1) + shift
-                    s[self.DTMF_START : self.DTMF_START + j + 1] = x[temp]
+                    temp = np.arange(self.DTMF_START - 1, self.DTMF_START + j) + shift
+                    s[self.DTMF_START - 1 : self.DTMF_START + j] = x[temp]
                 elif i == 14:
                     x = self.g_files[3, :]
-                    temp = np.arange(self.DTMF_START, self.DTMF_START + j + 1)
-                    s[self.DTMF_START : self.DTMF_START + j + 1] = x[temp]
+                    temp = np.arange(self.DTMF_START - 1, self.DTMF_START + j)
+                    s[self.DTMF_START - 1 : self.DTMF_START + j] = x[temp]
                 elif i == 15:
                     x = self.g_files[3, :]
-                    temp = np.arange(self.DTMF_START, self.DTMF_START + j + 1) + shift
-                    s[self.DTMF_START : self.DTMF_START + j + 1] = x[temp]
+                    temp = np.arange(self.DTMF_START - 1, self.DTMF_START + j) + shift
+                    s[self.DTMF_START - 1 : self.DTMF_START + j] = x[temp]
                 else:
                     raise ValueError("Oops")
 

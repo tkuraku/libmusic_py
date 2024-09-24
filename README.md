@@ -20,10 +20,10 @@ pure signal and noise. Methods provided here are:
 ![Dual Tone Noise](images/dual_tone_noise.png)
 
 
-You will find examples in **examples** folder and tests in **tests** (not
-implemented yet) folder. There is also specific support for DTMF (dual tone
-signals), including a toy testing framework for them. Just ignore them or reuse
-that for your own purposes.
+You will find examples in **examples** folder and tests in **tests** (work in
+progress) folder. There is also specific support for DTMF (dual tone signals),
+including a toy testing framework for them. Just ignore them or reuse that for
+your own purposes.
 
 # Using in Python
 1. install libmusic, `python -m pip install .`
