@@ -6,6 +6,7 @@
 # Some tests of testing.
 #
 # date: August 2022
+# Translated to Python 2024
 
 # %%
 
