@@ -42,8 +42,8 @@ for i in range(len(DETECT_BLOCK_LEN)):
         shouldDetect = 1
         shouldCheckSymbol = 1
         shouldCheckAmplitude = 0
-        shouldDetectSampleStart = np.max(1, o.DTMF_START - BLOCK_LEN)
-        shouldDetectSampleEnd = np.min(o.TEST_VECTOR_LEN, o.DTMF_START + N - 1)
+        shouldDetectSampleStart = np.max([1, o.DTMF_START - BLOCK_LEN])
+        shouldDetectSampleEnd = np.min([o.TEST_VECTOR_LEN, o.DTMF_START + N - 1])
         success_rate = lm_dtmf.execute_on_test_vectors(
             d,
             o,
@@ -57,3 +57,4 @@ for i in range(len(DETECT_BLOCK_LEN)):
             shouldDetectSampleStart,
             shouldDetectSampleEnd,
         )
+        print(f"{success_rate=}")
