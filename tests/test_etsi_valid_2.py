@@ -33,17 +33,19 @@ for i in range(len(DETECT_BLOCK_LEN)):
 
         # Create 2d array of test vectors for given fraction length
         # from 3d array of test vectors
-        vectors = []
         for i in range(16):
             s = np.squeeze(o.g_dtmf_v_valid[i, N, :])
-            vectors = np.concatenate((vectors, s))
+            if i == 0:
+                vectors = s
+            else:
+                vectors = np.vstack((vectors, s))
         method = lm_spectral_method("music", 4, 4)
         byRoots = 1
         shouldDetect = 1
         shouldCheckSymbol = 1
         shouldCheckAmplitude = 0
-        shouldDetectSampleStart = np.max([1, o.DTMF_START - BLOCK_LEN])
-        shouldDetectSampleEnd = np.min([o.TEST_VECTOR_LEN, o.DTMF_START + N - 1])
+        shouldDetectSampleStart = np.max([0, o.DTMF_START - BLOCK_LEN])
+        shouldDetectSampleEnd = np.min([o.TEST_VECTOR_LEN, o.DTMF_START + N])
         success_rate = lm_dtmf.execute_on_test_vectors(
             d,
             o,
@@ -57,4 +59,6 @@ for i in range(len(DETECT_BLOCK_LEN)):
             shouldDetectSampleStart,
             shouldDetectSampleEnd,
         )
+        if success_rate < 1.0:
+            raise ValueError("Test Failed")
         print(f"{success_rate=}")

@@ -453,6 +453,7 @@ class lm_spectral_method:
         -------
             Vy, Vx, Ve, A, Ry
         """
+        y = y.reshape(-1)
         if len(y) <= self.M:
             raise ValueError("Err, N must be > M")
         X = spec.corrmtx(y, self.M, "covariance")
@@ -462,7 +463,7 @@ class lm_spectral_method:
         Ry = X.conj().T @ X  # compute R
         Ry = (Ry + Ry.conj().T) / 2  # hermitian symmetric
 
-        _, A, Vy = np.linalg.svd(Ry, hermitian=True)
+        _, A, Vy = np.linalg.svd(Ry)
 
         Vy = Vy.conj().T  # make it same as matlab
 
@@ -618,7 +619,7 @@ class lm_dtmf:
         for i in range(sample_end):
             try:
                 if verbose:
-                    print(f"[#d/#d]->", detectBlockLen, i)
+                    print(f"[{detectBlockLen}/{i}]->")
                     if i == 40:
                         print(f"o")
                 f1 = 0
@@ -634,19 +635,14 @@ class lm_dtmf:
                 _ = method.process(vector[i : i + detectBlockLen])
 
                 if byRoots:
-                    fs = method.eigenrooting(lm.g_Fs, 0, 0)
+                    fs = method.eigenrooting(lm.g_Fs, 0)
                     decision, f1, f2 = self.check_by_roots(fs, 0)
                     if verbose:
                         print(
-                            f"[#d/#d]By ROOTS, decision=#d, f1=#d, f2=#d",
-                            detectBlockLen,
-                            i,
-                            decision,
-                            f1,
-                            f2,
+                            f"[{detectBlockLen}/{i}]By ROOTS, decision={decision}, f1={f1}, f2={f2}"
                         )
                 else:
-                    peaks, peaks_pmu = method.peaks(np.arange(4000 + 1), lm.g_Fs, 0)
+                    peaks, peaks_pmu = method.peaks(np.arange(4000), lm.g_Fs, 0)
                     decision, f1, f2 = self.check_by_peaks(peaks[0], peaks[1], verbose)
                 if decision:
                     if checkAmplitude:
@@ -667,7 +663,7 @@ class lm_dtmf:
                         print(f"DETECTED")
                     detectSample = i
                     detectSymbol = lm.dtmf_etsi_f1_f2_2_symbol(f1, f2)
-                    return
+                    return decision, detectSample, detectSymbol
             except:
                 if verbose:
                     print(f"Detection failed")
@@ -1450,14 +1446,13 @@ class lm_globals:
         return np.argsort(self.dtmf_etsi_symbol_arr == symbol)
 
     def dtmf_etsi_f1_f2_2_idx(self, f1, f2):
-        return np.argwhere(ismember(self.g_dtmf_etsi_freqs, [f1, f2]))
+        f = np.array([f1, f2]).astype(int)
+        for i in range(self.g_dtmf_etsi_freqs.shape[0]):
+            if (self.g_dtmf_etsi_freqs[i] == f).all():
+                idx = i
+                break
+        return idx
 
     def dtmf_etsi_f1_f2_2_symbol(self, f1, f2):
         idx = self.dtmf_etsi_f1_f2_2_idx(f1, f2)
         return self.dtmf_etsi_idx_2_symbol(idx)
-
-
-def ismember(a, b):
-    a = np.array(a)
-    b = np.array(b)
-    return np.flatnonzero(np.in1d(b[:, 0], a[:, 0]) & np.in1d(b[:, 1], a[:, 1]))
