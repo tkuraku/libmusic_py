@@ -91,8 +91,7 @@ A = lm.solve_for_amplitudes(fs, Fs)
 
 Copyright (C) 2022, Piotr Gregor piotr@dataandsignal.com
 
-3D plots not impolemented
-<!-- ![lm5](https://user-images.githubusercontent.com/40000574/190017795-051ef15c-404d-4868-a0e3-dc462e838632.jpg) -->
+![Dual Tone Noise](images/dual_tone_freq_noise.png)
 
 ## Performance in noise
 
